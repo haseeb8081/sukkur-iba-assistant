@@ -9,12 +9,18 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from bs4 import BeautifulSoup as Soup
 
 # 1. Configuration Setup (Supports Local AND Cloud)
-load_dotenv()
+# Load dotenv locally
+if os.path.exists(".env"):
+    load_dotenv(".env")
+
 def get_secret(key):
     # Try Streamlit Secrets (Cloud) first, then Environment Variables (Local)
-    if key in st.secrets:
-        return st.secrets[key]
-    return os.getenv(key)
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except:
+        pass
+    return os.environ.get(key)
 
 PINECONE_API_KEY = get_secret("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = get_secret("PINECONE_INDEX_NAME")
@@ -24,7 +30,7 @@ GROQ_API_KEY = get_secret("GROQ_API_KEY")
 @st.cache_resource
 def get_embeddings():
     if not PINECONE_API_KEY:
-        st.error("❌ Missing PINECONE_API_KEY in Secrets!")
+        st.error("❌ Missing PINECONE_API_KEY in Secrets/Environment!")
         return None
     # Multi-lingual cloud embeddings (No local download!)
     return PineconeEmbeddings(model="multilingual-e5-large", pinecone_api_key=PINECONE_API_KEY)
@@ -53,10 +59,13 @@ with st.sidebar:
                 for doc in docs:
                     doc.metadata = {k: v for k, v in doc.metadata.items() if v is not None}
                 
-                # Zero-dependency Vector Search
+                # Vector Search Initialization
+                embeddings = get_embeddings()
+                if not embeddings: return
+                
                 vector_store = PineconeVectorStore(
                     index_name=PINECONE_INDEX_NAME, 
-                    embedding=get_embeddings(), 
+                    embedding=embeddings, 
                     pinecone_api_key=PINECONE_API_KEY
                 )
                 
@@ -87,15 +96,18 @@ if prompt := st.chat_input("How can I help you?"):
                 if not GROQ_API_KEY: raise ValueError("GROQ_API_KEY is not set!")
                 
                 # 1. Direct Search in Pinecone
+                embeddings = get_embeddings()
+                if not embeddings: raise ValueError("Embeddings failed to initialize.")
+                
                 vector_store = PineconeVectorStore(
                     index_name=PINECONE_INDEX_NAME, 
-                    embedding=get_embeddings(), 
+                    embedding=embeddings, 
                     pinecone_api_key=PINECONE_API_KEY
                 )
                 search_results = vector_store.similarity_search(prompt, k=5)
                 context = "\n\n".join([doc.page_content for doc in search_results])
                 
-                # 2. Direct Call to Groq (No LangChain dependency for thinking)
+                # 2. Direct Call to Groq
                 client = Groq(api_key=GROQ_API_KEY)
                 chat_completion = client.chat.completions.create(
                     messages=[
