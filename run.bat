@@ -1,0 +1,16 @@
+@echo off
+echo 🚀 Launching Streamlit University Chatbot...
+
+if not exist venv (
+    echo 📦 Creating Python virtual environment...
+    python -m venv venv
+)
+
+echo ✅ Activating venv...
+call venv\Scripts\activate
+
+echo 📥 Installing/Updating dependencies (Using --user for permissions)...
+python -m pip install --quiet --user -r requirements.txt
+
+echo 🔥 Running Streamlit Dashboard...
+streamlit run streamlit_app.py

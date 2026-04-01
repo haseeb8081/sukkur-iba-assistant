@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "source": ".",
+    "runtime": "python310"
+  },
+  "hosting": {
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "api"
+      }
+    ]
+  }
+}

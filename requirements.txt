@@ -1,0 +1,11 @@
+streamlit
+python-dotenv
+groq
+langchain-pinecone
+langchain-community
+langchain-text-splitters
+beautifulsoup4
+html2text
+requests
+pydantic
+pydantic-settings

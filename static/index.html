@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sukkur IBA University | AI Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #003a70; /* IBA Sukkur Blue */
+            --accent: #edb112; /* Accent Gold */
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --text: #1e293b;
+            --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, #001f3f 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+        }
+
+        .chat-card {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-header {
+            background: var(--primary);
+            padding: 24px;
+            color: white;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .chat-header p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scrollbar-width: thin;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } }
+
+        .bot {
+            background: #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: var(--white);
+            border-top: 1px solid #edf2f7;
+            display: flex;
+            gap: 12px;
+        }
+
+        input {
+            flex: 1;
+            border: 2px solid #e2e8f0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            outline: none;
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus { border-color: var(--primary); }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .typing { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="chat-card">
+        <div class="chat-header">
+            <img src="https://www.iba-suk.edu.pk/assets/images/iba_logo.png" style="height: 40px; margin-bottom: 10px;" alt="">
+            <h1>Sukkur IBA University</h1>
+            <p>Smart Admission & Policy Assistant</p>
+        </div>
+        <div id="chat-messages">
+            <div class="message bot">
+                Hello! I am your Sukkur IBA Assistant. How can I help you today?
+            </div>
+        </div>
+        <form class="chat-input" id="chat-form">
+            <input type="text" id="user-input" placeholder="Ask about policies, dates, or criteria..." required autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('user-input');
+        const messages = document.getElementById('chat-messages');
+
+        function appendMessage(text, side) {
+            const div = document.createElement('div');
+            div.className = `message ${side}`;
+            div.innerText = text;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const query = input.value.trim();
+            if(!query) return;
+
+            appendMessage(query, 'user');
+            input.value = '';
+
+            // Loading state
+            const loading = document.createElement('div');
+            loading.className = 'message bot';
+            loading.innerText = 'Thinking...';
+            messages.appendChild(loading);
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await response.json();
+                messages.removeChild(loading);
+                appendMessage(data.answer, 'bot');
+            } catch (err) {
+                messages.removeChild(loading);
+                appendMessage("Sorry, I encountered an error. Is the server running?", 'bot');
+            }
+        };
+    </script>
+</body>
+</html>
