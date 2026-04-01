@@ -8,15 +8,24 @@ from langchain_community.document_loaders import RecursiveUrlLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from bs4 import BeautifulSoup as Soup
 
-# 1. Configuration Setup
+# 1. Configuration Setup (Supports Local AND Cloud)
 load_dotenv()
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+def get_secret(key):
+    # Try Streamlit Secrets (Cloud) first, then Environment Variables (Local)
+    if key in st.secrets:
+        return st.secrets[key]
+    return os.getenv(key)
+
+PINECONE_API_KEY = get_secret("PINECONE_API_KEY")
+PINECONE_INDEX_NAME = get_secret("PINECONE_INDEX_NAME")
+GROQ_API_KEY = get_secret("GROQ_API_KEY")
 
 # 2. Embedding Engine Initialization (Cloud Pinecone Inference)
 @st.cache_resource
 def get_embeddings():
+    if not PINECONE_API_KEY:
+        st.error("❌ Missing PINECONE_API_KEY in Secrets!")
+        return None
     # Multi-lingual cloud embeddings (No local download!)
     return PineconeEmbeddings(model="multilingual-e5-large", pinecone_api_key=PINECONE_API_KEY)
 
@@ -31,6 +40,8 @@ with st.sidebar:
     if st.button("🚀 Update Knowledge Base"):
         with st.status("Cleaning and Indexing in Cloud (Steadily)...", expanded=True) as s:
             try:
+                if not PINECONE_API_KEY: raise ValueError("PINECONE_API_KEY is not set!")
+                
                 # Deep Search Depth 2
                 loader = RecursiveUrlLoader(url=uni_url, max_depth=2, extractor=lambda x: Soup(x, "html.parser").get_text())
                 raw_docs = loader.load()
@@ -73,6 +84,8 @@ if prompt := st.chat_input("How can I help you?"):
     with st.chat_message("assistant"):
         with st.spinner("Analyzing Cloud Context..."):
             try:
+                if not GROQ_API_KEY: raise ValueError("GROQ_API_KEY is not set!")
+                
                 # 1. Direct Search in Pinecone
                 vector_store = PineconeVectorStore(
                     index_name=PINECONE_INDEX_NAME, 
