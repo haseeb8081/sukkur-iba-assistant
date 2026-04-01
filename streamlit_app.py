@@ -24,7 +24,7 @@ PINECONE_API_KEY = get_secret("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = get_secret("PINECONE_INDEX_NAME")
 GROQ_API_KEY = get_secret("GROQ_API_KEY")
 
-# 2. Embedding Engine Initialization (Cloud Pinecone Inference)
+# 2. Embedding Engine Initialization
 @st.cache_resource
 def get_embeddings():
     if not PINECONE_API_KEY:
@@ -41,7 +41,7 @@ with st.sidebar:
     st.header("⚙️ Admin Dashboard")
     uni_url = st.text_input("University URL", value="https://www.iba-suk.edu.pk/")
     if st.button("🚀 Update Knowledge Base"):
-        with st.status("Cleaning and Indexing in Cloud (Steadily)...", expanded=True) as s:
+        with st.status("Cleaning and Indexing in Cloud...", expanded=True) as s:
             try:
                 if not PINECONE_API_KEY: raise ValueError("PINECONE_API_KEY is not set!")
                 
@@ -69,7 +69,7 @@ with st.sidebar:
                     vector_store.add_documents(batch)
                     time.sleep(1)
                 
-                s.update(label="✅ Deep Index Complete!", state="complete")
+                s.update(label="✅ Index Updated!", state="complete")
                 st.balloons()
             except Exception as e:
                 s.update(label=f"❌ Error: {e}", state="error")
@@ -90,7 +90,6 @@ if prompt := st.chat_input("How can I help you?"):
                 
                 embeddings = get_embeddings()
                 if embeddings is None:
-                    st.error("Embeddings failed to initialize.")
                     st.stop()
                 
                 vector_store = PineconeVectorStore(
@@ -104,7 +103,7 @@ if prompt := st.chat_input("How can I help you?"):
                 client = Groq(api_key=GROQ_API_KEY)
                 chat_completion = client.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": f"You are an IBA Assistant. Use only this context: {context}"},
+                        {"role": "system", "content": f"You are an IBA Assistant. Use ONLY this context: {context}"},
                         {"role": "user", "content": prompt}
                     ],
                     model="llama-3.3-70b-versatile",
